@@ -1,0 +1,1 @@
+# pip install flask flask-sqlalchemy flask-migrate flask-jwt-extended flask-bcrypt flask-cors yfinance python-dotenv google-generativeai
