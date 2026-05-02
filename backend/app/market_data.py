@@ -1,12 +1,17 @@
 import yfinance as yf
 from flask import Blueprint, jsonify, request
-import google.generativeai as genai
+from google import genai
 import os
+from dotenv import load_dotenv
 
 market_bp = Blueprint('market', __name__)
+load_dotenv()
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel('gemini-pro')
+# genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+# model = genai.GenerativeModel('gemini-pro')
+
+api_key = os.getenv("GEMINI_API_KEY")
+client = genai.Client(api_key=api_key)
 
 @market_bp.route('/price/<ticker>', methods=['GET'])
 def get_stock_price(ticker):
@@ -51,9 +56,12 @@ def analyze_stock(ticker):
         
         # prompt for gemini
         new_titles = [item['title'] for item in news]
-        prompt = f"Analyze the following news headlines for {ticker} and provide a brief summary(bullish, neutral or bearish) and why: {new_titles}"
 
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=f"Analyze the following news headlines for {ticker} and provide a brief summary(bullish, neutral or bearish) and why: {new_titles}"
+        )
+
         return jsonify({"ticker": ticker, "analysis": response.text}), 200
     except Exception as e:
         return jsonify({"error": "AI analysis failed"}), 500
