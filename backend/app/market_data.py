@@ -14,9 +14,48 @@ def get_stock_price(ticker):
     try:
         stock = yf.Ticker(ticker)
 
-        price = stock.fast_info['last_price']
+        price = stock.fast_info['last_price'] # using .fast_info which is faster than the .info
         return jsonify({"ticker": ticker, "price": round(price, 2)}), 200
     
     except Exception as e:
         return jsonify({"error": f"Could not fetch data for {ticker}"}), 400
 
+@market_bp.route('/history/<ticker>', methods=['GET'])
+def get_stock_history(ticker):
+    '''to fetch history of the stock for the charts in frontend'''
+    period = request.args.get('period', '1mo') #default to 1 month
+    try:
+        stock = yf.Ticker(ticker)
+        hist = stock.history(period=period)
+
+        data = []
+        for index, row in hist.iterrows():
+            data.append({
+                "date": index.strftime('%Y-%m-%d'),
+                "price": round(row['Close'], 2)
+            })
+        return jsonify(data), 200
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+    
+@market_bp.route('/analyze/<ticker>', methods=['GET'])
+def analyze_stock(ticker):
+    '''Adding AI : gemini to analyze recent news about the stock'''
+    try:
+        stock = yf.Ticker(ticker)
+        news = stock.news[:5] # top 5 news at a time
+
+        if not news:
+            return jsonify({"analysis": "No recent news found for this ticker."}), 200
+        
+        # prompt for gemini
+        new_titles = [item['title'] for item in news]
+        prompt = f"Analyze the following news headlines for {ticker} and provide a brief summary(bullish, neutral or bearish) and why: {new_titles}"
+
+        response = model.generate_content(prompt)
+        return jsonify({"ticker": ticker, "analysis": response.text}), 200
+    except Exception as e:
+        return jsonify({"error": "AI analysis failed"}), 500
+    
+    

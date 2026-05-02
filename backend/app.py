@@ -1,10 +1,14 @@
 from flask import Flask
 from flask_migrate import Migrate
+import os
 from extensions import db, jwt
 
 app = Flask(__name__) 
 
 migrate = Migrate(app, db)
+
+app.config['JWT_SECRET_KEY']=os.getenv('JWT_SECRET_KEY')
+app.config['SQLALCHEMY_DATABASE_URI']="sqlite:///stock.db"
 
 db.init_app(app)
 jwt.init_app(app)

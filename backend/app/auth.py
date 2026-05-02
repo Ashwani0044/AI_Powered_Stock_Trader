@@ -57,4 +57,4 @@ def login():
             }
         }), 200
     
-    return jsonify(message='Invalid cresentials!'), 401
+    return jsonify(message='Invalid credentials!'), 401
