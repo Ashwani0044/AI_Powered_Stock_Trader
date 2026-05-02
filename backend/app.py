@@ -9,7 +9,9 @@ migrate = Migrate(app, db)
 db.init_app(app)
 jwt.init_app(app)
 
+from app.auth import auth_bp
 
+app.register_blueprint(auth_bp)
 
 if __name__ == '__main__':
     with app.app_context():
