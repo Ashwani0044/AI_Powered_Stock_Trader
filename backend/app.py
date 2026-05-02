@@ -10,8 +10,11 @@ db.init_app(app)
 jwt.init_app(app)
 
 from app.auth import auth_bp
+from app.market_data import market_bp
 
 app.register_blueprint(auth_bp)
+app.register_blueprint(market_bp)
+
 
 if __name__ == '__main__':
     with app.app_context():
