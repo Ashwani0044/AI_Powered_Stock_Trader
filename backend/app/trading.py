@@ -71,7 +71,7 @@ def get_history():
     }), 200
 
 @trading_bp.route('/sell', methods=['POST'])
-@jwt_required
+@jwt_required()
 def sell_stock():
     user_id = get_jwt_identity()
     data = request.get_json()
