@@ -2,7 +2,9 @@ from google import genai
 import os
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import User, Portfolio
+from models import User, Portfolio, Message
+from extensions import db
+
 
 ai_bp = Blueprint('ai', __name__)
 api_key = os.getenv("GEMINI_API_KEY")
@@ -54,6 +56,14 @@ def chat_with_ai():
     data = request.get_json()
     user_message = data.get('message')
 
+    past_messages = Message.query.filter_by(user_id=user_id)\
+        .order_by(Message.created_at.desc())\
+        .limit(10).all()
+    
+    history = []
+    for msg in reversed(past_messages):
+        history.append({"role": msg.role, "parts": [{"text": msg.content}]})
+
     if not user_message:
         return jsonify({"error": "Message is required"}), 400
 
@@ -74,10 +84,16 @@ def chat_with_ai():
 
     try:
         
-        chat = client.chats.create(model=MODEL_ID, history=[])
+        chat = client.chats.create(model=MODEL_ID, history=history)
 
         full_prompt = f"{system_instruction}\n\nUser Question: {user_message}"
         response = chat.send_message(full_prompt)
+
+        # adding new messages to Message class
+        new_user_msg = Message(user_id=user_id, role='user', content=user_message)
+        new_ai_msg = Message(user_id=user_id, role='model', content=response.text)
+        db.session.add_all([new_user_msg, new_ai_msg])
+        db.session.commit()
 
         return jsonify({
             "response": response.text,
