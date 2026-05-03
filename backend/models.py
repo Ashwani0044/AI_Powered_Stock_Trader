@@ -38,3 +38,11 @@ class Message(db.Model):
     role = db.Column(db.String(10)) # 'user' or 'model'
     content = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Watchlist(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    ticker = db.Column(db.String(10), nullable=False)
+
+    # to ensure that the user does not add the stock twice..
+    __table_args__ = (db.UniqueConstraint('user_id', 'ticker', name='_user_ticker_uc'),)

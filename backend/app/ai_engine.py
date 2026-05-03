@@ -79,7 +79,8 @@ def chat_with_ai():
     1. Be concise and professional.
     2. If the user asks about their own stocks, use the provided context.
     3. If they ask for investment advice, give a disclaimer that this is a simulator.
-    4. Use bold text for stock tickers (e.g., **AAPL**).
+    4. Use the history if the chat given to you to give the best answers.
+    5. Use bold text for stock tickers (e.g., **AAPL**).
     """
 
     try:
