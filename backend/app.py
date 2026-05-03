@@ -19,10 +19,12 @@ from models import User, Portfolio, Transaction
 from app.auth import auth_bp
 from app.market_data import market_bp
 from app.trading import trading_bp
+from app.ai_engine import ai_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(market_bp)
 app.register_blueprint(trading_bp)
+app.register_blueprint(ai_bp)
 
 
 if __name__ == '__main__':
