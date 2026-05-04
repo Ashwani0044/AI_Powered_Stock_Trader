@@ -66,4 +66,36 @@ def analyze_stock(ticker):
     except Exception as e:
         return jsonify({"error": "AI analysis failed"}), 500
     
+
+
+@market_bp.route('/info/<ticker>', methods=['GET'])
+def get_stock_info(ticker):
+    """Combined route for Price, Company Name, and 7-day Chart Data"""
+    try:
+        stock = yf.Ticker(ticker)
+        
+        # Get Live Price
+        current_price = stock.fast_info['last_price']
+        
+        # Get Company Name (fallback to Ticker if not found)
+        name = stock.info.get('longName', ticker.upper())
+        
+        # Get History for Chart (7 days, 1-hour intervals)
+        hist = stock.history(period="7d", interval="1h")
+        chart_data = []
+        for index, row in hist.iterrows():
+            chart_data.append({
+                "time": index.strftime('%m/%d %H:%M'),
+                "price": round(row['Close'], 2)
+            })
+
+        return jsonify({
+            "symbol": ticker.upper(),
+            "name": name,
+            "currentPrice": round(current_price, 2),
+            "chart": chart_data
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Could not fetch data for {ticker}"}), 400
     

@@ -7,10 +7,10 @@ import yfinance as yf
 trading_bp = Blueprint('trading', __name__)
 
 @trading_bp.route('/buy', methods=['POST'])
-@jwt_required
+@jwt_required()
 def buy_stock():
     user_id = get_jwt_identity()
-    data = request.get_json
+    data = request.get_json()
     ticker = data.get('ticker').upper()
     quantity = int(data.get('quantity'))
 
@@ -104,7 +104,7 @@ def sell_stock():
     new_tx = Transaction(
         user_id=user_id, 
         ticker=ticker, 
-        type='SELL', 
+        transaction_type='SELL', 
         price=current_price, 
         quantity=quantity_to_sell
     )
@@ -116,4 +116,42 @@ def sell_stock():
         "message": f"Successfully sold {quantity_to_sell} shares of {ticker}",
         "payout": round(payout, 2),
         "new_balance": round(user.balance, 2)
+    }), 200
+
+
+@trading_bp.route('/portfolio', methods=['GET'])
+@jwt_required()
+def get_portfolio():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    holdings = Portfolio.query.filter_by(user_id=user_id).all()
+    
+    portfolio_data = []
+    total_stock_value = 0
+    
+    for h in holdings:
+        try:
+            stock = yf.Ticker(h.ticker)
+            current_price = stock.fast_info['last_price']
+        except:
+            current_price = h.avg_price # Fallback
+            
+        current_val = current_price * h.quantity
+        total_stock_value += current_val
+        
+        # Profit/Loss percentage
+        pl_pct = ((current_price - h.avg_price) / h.avg_price) * 100
+        
+        portfolio_data.append({
+            "ticker": h.ticker,
+            "shares": h.quantity,
+            "avg_cost": round(h.avg_price, 2),
+            "current_price": round(current_price, 2),
+            "pl": round(pl_pct, 2)
+        })
+
+    return jsonify({
+        "balance": round(user.balance, 2),
+        "portfolio_value": round(total_stock_value, 2),
+        "holdings": portfolio_data
     }), 200
