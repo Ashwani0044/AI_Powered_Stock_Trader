@@ -8,7 +8,7 @@ auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/signup', methods=['POST'])
 def signup():
-    data = request.get_json
+    data = request.get_json()
 
     username = data.get('username')
     email = data.get('email')

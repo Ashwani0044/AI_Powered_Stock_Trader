@@ -1,8 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
+import Signup from './pages/Signup';
 
-// A simple placeholder for now so the app doesn't crash
 const Dashboard = () => (
   <div className="min-h-screen bg-slate-900 text-white p-10">
     <h1 className="text-4xl font-bold">Trading Dashboard</h1>
@@ -15,6 +15,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
         <Route path="/dashboard" element={<Dashboard />} />
         {/* Redirect any unknown route to login */}
         <Route path="*" element={<Navigate to="/login" />} />
