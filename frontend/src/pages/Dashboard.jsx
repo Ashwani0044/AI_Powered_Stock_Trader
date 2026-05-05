@@ -70,7 +70,12 @@ const Dashboard = () => {
           <tbody className="divide-y divide-slate-700">
             {data.holdings.length > 0 ? data.holdings.map((stock) => (
               <tr key={stock.ticker} className="hover:bg-slate-700/30 transition">
-                <td className="p-4 font-bold text-blue-400">{stock.ticker}</td>
+                <td 
+                  className="p-4 font-bold text-blue-400 cursor-pointer hover:underline"
+                  onClick={() => navigate(`/market?ticker=${stock.ticker}`)}
+                >
+                  {stock.ticker}
+                </td>
                 <td className="p-4">{stock.shares}</td>
                 <td className="p-4">${stock.avg_cost}</td>
                 <td className="p-4">${stock.current_price}</td>

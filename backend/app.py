@@ -4,6 +4,7 @@ import os
 from extensions import db, jwt
 from dotenv import load_dotenv
 from flask_cors import CORS
+from datetime import timedelta
 
 app = Flask(__name__) 
 CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
@@ -13,6 +14,7 @@ load_dotenv()
 
 app.config['JWT_SECRET_KEY']=os.getenv('JWT_SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI']="sqlite:///stock.db"
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=7) # Token lasts a week
 
 db.init_app(app)
 jwt.init_app(app)
