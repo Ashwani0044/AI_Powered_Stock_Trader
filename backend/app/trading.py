@@ -11,19 +11,35 @@ trading_bp = Blueprint('trading', __name__)
 def buy_stock():
     user_id = get_jwt_identity()
     data = request.get_json()
+    
+    # Validate input
+    if not data.get('ticker') or not data.get('quantity'):
+        return jsonify(message='Ticker and quantity are required'), 400
+    
     ticker = data.get('ticker').upper()
-    quantity = int(data.get('quantity'))
+    try:
+        quantity = int(data.get('quantity'))
+        if quantity <= 0:
+            return jsonify(message='Quantity must be greater than 0'), 400
+    except ValueError:
+        return jsonify(message='Quantity must be a valid number'), 400
 
     # get current price
-    stock = yf.Ticker(ticker)
-    current_price = stock.fast_info['last_price']
-    total_cost = current_price*quantity
+    try:
+        stock = yf.Ticker(ticker)
+        current_price = stock.fast_info['last_price']
+        if current_price is None:
+            return jsonify(message=f'Invalid ticker: {ticker}'), 400
+    except Exception:
+        return jsonify(message=f'Could not fetch price for {ticker}'), 400
+    
+    total_cost = current_price * quantity
 
     user = User.query.get(user_id)
 
     # checking if user have enough balance to buy
     if user.balance < total_cost:
-        return jsonify(message='Insignificant fund! Reduce the quantity..'), 400
+        return jsonify(message=f'Insufficient balance! You need ${total_cost:.2f} but have ${user.balance:.2f}'), 400
     
     user.balance -= total_cost # updating balance
 
@@ -32,6 +48,7 @@ def buy_stock():
     if holding:
         total_quantity = holding.quantity + quantity
         holding.avg_price = ((holding.avg_price * holding.quantity) + total_cost) / total_quantity
+        holding.quantity = total_quantity
     else:
         new_holding = Portfolio(user_id=user_id, ticker=ticker, quantity=quantity, avg_price=current_price)
         db.session.add(new_holding)
@@ -41,7 +58,12 @@ def buy_stock():
     db.session.add(new_tx)
 
     db.session.commit()
-    return jsonify(message=f"Successfully bought {quantity} shares of {ticker}"), 200
+    return jsonify({
+        "message": f"Successfully bought {quantity} shares of {ticker}",
+        "price": round(current_price, 2),
+        "total_cost": round(total_cost, 2),
+        "new_balance": round(user.balance, 2)
+    }), 200
 
 @trading_bp.route('/history', methods=['GET'])
 @jwt_required()
@@ -58,7 +80,7 @@ def get_history():
     for tx in tx_pagination.items:
         results.append({
             "ticker": tx.ticker,
-            "type": tx.type,
+            "type": tx.transaction_type,
             "price": tx.price,
             "quantity": tx.quantity,
             "date": tx.timestamp.strftime('%Y-%m-%d %H:%M')
@@ -75,22 +97,35 @@ def get_history():
 def sell_stock():
     user_id = get_jwt_identity()
     data = request.get_json()
+    
+    # Validate input
+    if not data.get('ticker') or not data.get('quantity'):
+        return jsonify(message='Ticker and quantity are required'), 400
+    
     ticker = data.get('ticker').upper()
-    quantity_to_sell = int(data.get('quantity'))
+    try:
+        quantity_to_sell = int(data.get('quantity'))
+        if quantity_to_sell <= 0:
+            return jsonify(message='Quantity must be greater than 0'), 400
+    except ValueError:
+        return jsonify(message='Quantity must be a valid number'), 400
 
     holding = Portfolio.query.filter_by(user_id=user_id, ticker=ticker).first()
 
     if not holding or holding.quantity < quantity_to_sell:
-        return jsonify(message=f"You don't have enough shares of {ticker} to sell."), 400
+        available = holding.quantity if holding else 0
+        return jsonify(message=f"You don't have enough shares of {ticker} to sell. Available: {available}"), 400
     
     try:
         stock = yf.Ticker(ticker)
         current_price = stock.fast_info['last_price']
+        if current_price is None:
+            return jsonify(message=f'Invalid ticker: {ticker}'), 400
 
     except Exception:
         return jsonify(message="Error fetching current market price."), 500
     
-    payout = current_price*quantity_to_sell
+    payout = current_price * quantity_to_sell
     user = User.query.get(user_id)
 
     user.balance += payout
@@ -114,6 +149,7 @@ def sell_stock():
     
     return jsonify({
         "message": f"Successfully sold {quantity_to_sell} shares of {ticker}",
+        "price": round(current_price, 2),
         "payout": round(payout, 2),
         "new_balance": round(user.balance, 2)
     }), 200
@@ -154,4 +190,22 @@ def get_portfolio():
         "balance": round(user.balance, 2),
         "portfolio_value": round(total_stock_value, 2),
         "holdings": portfolio_data
+    }), 200
+
+@trading_bp.route('/user-profile', methods=['GET'])
+@jwt_required()
+def get_user_profile():
+    """Get user profile info"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    return jsonify({
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "balance": round(user.balance, 2),
+        "created_at": user.created_at.strftime('%Y-%m-%d')
     }), 200

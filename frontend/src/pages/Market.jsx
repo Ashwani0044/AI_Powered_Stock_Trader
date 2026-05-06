@@ -1,171 +1,207 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../api';
-import { Search, TrendingUp, DollarSign, BrainCircuit, Loader2 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { Search, TrendingUp, Zap } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import TradeModal from '../components/TradeModal';
 
-const Market = () => {
-  const [query, setQuery] = useState('');
-  const [stock, setStock] = useState(null);
-  const [analysis, setAnalysis] = useState('');
-  const [quantity, setQuantity] = useState(1);
+const Market = ({ setNotification }) => {
+  const [searchParams] = useSearchParams();
+  const [ticker, setTicker] = useState(searchParams.get('ticker') || 'AAPL');
+  const [searchInput, setSearchInput] = useState('');
+  const [stockInfo, setStockInfo] = useState(null);
+  const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [trading, setTrading] = useState(false);
+  const [modal, setModal] = useState({ isOpen: false, ticker: '', type: 'BUY' });
+  const [chartData, setChartData] = useState([]);
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setAnalysis('');
+  const fetchStockData = async (sym) => {
+    if (!sym || sym.length === 0) return;
+    
     try {
-      const res = await api.get(`/market/info/${query}`);
-      setStock(res.data);
+      setLoading(true);
+      
+      // Fetch stock info and chart data
+      const infoRes = await api.get(`/market/info/${sym}`);
+      setStockInfo(infoRes.data);
+
+      // Fetch analysis
+      const analysisRes = await api.get(`/market/analyze/${sym}`);
+      setAnalysis(analysisRes.data);
+
+      // Transform chart data
+      const chartArray = infoRes.data.chart.map(item => ({
+        time: item.time,
+        price: item.price,
+      }));
+      setChartData(chartArray);
+
+      setNotification(`Loaded ${sym} data`, 'success');
     } catch (err) {
-      alert("Stock not found! Try AAPL or TSLA.");
+      setNotification(err.response?.data?.error || 'Failed to fetch stock data', 'error');
+      setStockInfo(null);
+      setAnalysis(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const getAIAnalysis = async () => {
-    setAnalyzing(true);
-    try {
-      const res = await api.get(`/market/analyze/${stock.symbol}`);
-      setAnalysis(res.data.analysis);
-    } catch (err) {
-      setAnalysis("AI Analysis failed to load.");
-    } finally {
-      setAnalyzing(false);
+  useEffect(() => {
+    fetchStockData(ticker);
+  }, []);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchInput.trim()) {
+      setTicker(searchInput.toUpperCase());
+      setSearchInput('');
+      fetchStockData(searchInput.toUpperCase());
     }
   };
 
-  const handleTrade = async (type) => {
-    if (quantity <= 0) return alert("Please enter a valid quantity.");
-    setTrading(true);
-    try {
-      const res = await api.post(`/trading/${type}`, {
-        ticker: stock.symbol,
-        quantity: quantity
-      });
-      alert(res.data.message);
-    } catch (err) {
-      alert(err.response?.data?.message || "Trade failed. Check your balance.");
-    } finally {
-      setTrading(false);
-    }
-  };
+  const suggestedTickers = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA', 'META', 'NVDA', 'AMD'];
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-white">Market Explorer</h2>
-      
-      <form onSubmit={handleSearch} className="flex gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3.5 text-slate-500" size={20} />
-          <input 
-            type="text" 
-            placeholder="Search Ticker (e.g. NVDA, MSFT)..." 
-            className="w-full pl-10 p-3 bg-slate-800 border border-slate-700 rounded-lg outline-none focus:border-blue-500 transition-all"
-            value={query}
-            onChange={(e) => setQuery(e.target.value.toUpperCase())}
-          />
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-4xl font-bold text-white mb-2">Market Explorer</h1>
+        <p className="text-slate-400">Search stocks, view charts, and AI-powered analysis</p>
+      </div>
+
+      {/* Search Bar */}
+      <form onSubmit={handleSearch} className="relative">
+        <div className="flex gap-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-4 top-3.5 text-slate-500" size={20} />
+            <input
+              type="text"
+              placeholder="Search ticker (AAPL, GOOGL, MSFT...)"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value.toUpperCase())}
+              className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+            />
+          </div>
+          <button
+            type="submit"
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
+          >
+            Search
+          </button>
         </div>
-        <button className="bg-blue-600 px-8 rounded-lg font-bold hover:bg-blue-700 transition flex items-center gap-2">
-          {loading && <Loader2 className="animate-spin" size={18} />}
-          {loading ? 'Fetching...' : 'Analyze'}
-        </button>
       </form>
 
-      {stock && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-2xl">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h3 className="text-2xl font-bold text-white">{stock.name}</h3>
-                  <p className="text-4xl font-mono text-blue-400 mt-2 font-black tracking-tighter">
-                    ${stock.currentPrice.toLocaleString()}
-                  </p>
-                </div>
-                <button 
-                  onClick={getAIAnalysis}
-                  disabled={analyzing}
-                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 rounded-full text-sm font-bold transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
+      {/* Quick Links */}
+      <div className="space-y-2">
+        <p className="text-slate-400 text-sm font-medium">Popular Tickers:</p>
+        <div className="flex flex-wrap gap-2">
+          {suggestedTickers.map((sym) => (
+            <button
+              key={sym}
+              onClick={() => {
+                setTicker(sym);
+                fetchStockData(sym);
+              }}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                ticker === sym
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              {sym}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-400">Loading {ticker} data...</p>
+          </div>
+        </div>
+      ) : stockInfo ? (
+        <>
+          {/* Stock Header */}
+          <div className="bg-linear-to-r from-blue-900/20 to-slate-800 rounded-xl border border-slate-700 p-8 shadow-xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-5xl font-bold text-white mb-2">{stockInfo.symbol}</h2>
+                <p className="text-slate-300 text-lg">{stockInfo.name}</p>
+              </div>
+              <div className="text-right">
+                <div className="text-5xl font-bold text-blue-400 mb-2">${stockInfo.currentPrice.toFixed(2)}</div>
+                <button
+                  onClick={() => setModal({ isOpen: true, ticker: stockInfo.symbol, type: 'BUY' })}
+                  className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold flex items-center gap-2 ml-auto transition"
                 >
-                  <BrainCircuit size={18} className={analyzing ? 'animate-pulse text-white' : 'text-indigo-200'} />
-                  {analyzing ? 'Consulting Gemini...' : 'AI Sentiment Analysis'}
+                  <TrendingUp size={20} />
+                  Buy {stockInfo.symbol}
                 </button>
               </div>
-              
-              <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={stock.chart}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.3} />
-                    <XAxis dataKey="time" hide />
-                    <YAxis domain={['auto', 'auto']} hide />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }}
-                      itemStyle={{ color: '#60a5fa' }}
-                    />
-                    <Line type="monotone" dataKey="price" stroke="#3b82f6" strokeWidth={3} dot={false} animationDuration={1500} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
             </div>
+          </div>
 
-            {analysis && (
-              <div className="bg-slate-800 border-l-4 border-indigo-500 p-6 rounded-r-xl shadow-xl animate-in slide-in-from-left-4">
-                <div className="flex items-center gap-2 text-indigo-400 mb-2 uppercase text-xs font-black tracking-widest">
-                  <BrainCircuit size={16} /> AI Summary
-                </div>
-                <div className="text-slate-300 leading-relaxed font-medium">
-                  {analysis}
-                </div>
+          {/* Chart */}
+          <div className="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-xl">
+            <h3 className="text-lg font-bold text-white mb-6">7-Day Performance</h3>
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,116,139,0.2)" />
+                  <XAxis dataKey="time" stroke="rgba(148,163,184,0.5)" angle={-45} textAnchor="end" height={80} />
+                  <YAxis stroke="rgba(148,163,184,0.5)" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: 'rgba(15,23,42,0.9)', border: '1px solid rgb(71,85,105)' }}
+                    formatter={(value) => `$${value.toFixed(2)}`}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="price"
+                    stroke="#3b82f6"
+                    dot={{ fill: '#3b82f6', r: 4 }}
+                    strokeWidth={3}
+                    isAnimationActive
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-slate-500">
+                No chart data available
               </div>
             )}
           </div>
 
-          <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 h-fit sticky top-6">
-            <h4 className="text-lg font-bold mb-6 flex items-center gap-2 text-white">
-              <DollarSign size={20} className="text-green-400" /> Terminal Order
-            </h4>
-            <div className="space-y-5">
-               <div>
-                 <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Shares to Purchase</label>
-                 <input 
-                  type="number" 
-                  min="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
-                  className="w-full mt-1 p-4 bg-slate-900 border border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono text-xl" 
-                 />
-               </div>
-               
-               <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700/50">
-                  <div className="flex justify-between text-xs text-slate-400">
-                    <span>Estimated Total</span>
-                    <span>${(quantity * stock.currentPrice).toLocaleString()}</span>
-                  </div>
-               </div>
-
-               <button 
-                onClick={() => handleTrade('buy')}
-                disabled={trading}
-                className="w-full bg-green-600 p-4 rounded-xl font-black text-white hover:bg-green-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-900/20 active:scale-95"
-               >
-                 {trading ? <Loader2 className="animate-spin" /> : 'CONFIRM BUY'}
-               </button>
-
-               <button 
-                onClick={() => handleTrade('sell')}
-                disabled={trading}
-                className="w-full border border-slate-600 p-4 rounded-xl font-bold text-slate-300 hover:bg-slate-700 transition-all active:scale-95"
-               >
-                 SELL POSITION
-               </button>
+          {/* AI Analysis */}
+          {analysis && (
+            <div className="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-xl">
+              <div className="flex items-center gap-2 mb-6">
+                <Zap className="text-yellow-400" size={24} />
+                <h3 className="text-lg font-bold text-white">AI Analysis</h3>
+              </div>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">{analysis.analysis}</p>
+              </div>
             </div>
+          )}
+        </>
+      ) : (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <p className="text-slate-500 text-lg">Enter a ticker to get started</p>
           </div>
         </div>
       )}
+
+      {/* Trade Modal */}
+      <TradeModal
+        isOpen={modal.isOpen}
+        ticker={modal.ticker}
+        type={modal.type}
+        onClose={() => setModal({ isOpen: false, ticker: '', type: 'BUY' })}
+        onSuccess={() => fetchStockData(ticker)}
+        setNotification={setNotification}
+      />
     </div>
   );
 };

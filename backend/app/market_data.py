@@ -58,11 +58,14 @@ def analyze_stock(ticker):
         new_titles = [item['title'] for item in news]
 
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-1.5-flash",
             contents=f"Analyze the following news headlines for {ticker} and provide a brief summary(bullish, neutral or bearish) and why: {new_titles}"
         )
 
         return jsonify({"ticker": ticker, "analysis": response.text}), 200
+    
+    except Exception.ResourceExhausted as e:
+        return jsonify({"error": "AI Rate Limit reached. Please try again in a minute."}), 429
     except Exception as e:
         return jsonify({"error": "AI analysis failed"}), 500
     
