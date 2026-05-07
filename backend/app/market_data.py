@@ -3,10 +3,12 @@ from flask import Blueprint, jsonify, request
 from google import genai
 import os
 from dotenv import load_dotenv
+import redis
+import json
 
 market_bp = Blueprint('market', __name__)
 load_dotenv()
-
+r = redis.Redis(host='localhost', post=6379, db=0, decode_responses=True)
 # genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 # model = genai.GenerativeModel('gemini-pro')
 
@@ -47,6 +49,15 @@ def get_stock_history(ticker):
 @market_bp.route('/analyze/<ticker>', methods=['GET'])
 def analyze_stock(ticker):
     '''Adding AI : gemini to analyze recent news about the stock'''
+    
+    ticker = ticker.upper()
+    
+    # Check Redis Cache First
+    cached_data = get_cached_analysis(ticker)
+    if cached_data:
+        return jsonify({"ticker": ticker, "analysis": cached_data, "source": "cache"}), 200
+
+
     try:
         stock = yf.Ticker(ticker)
         news = stock.news[:5] # top 5 news at a time
@@ -61,6 +72,10 @@ def analyze_stock(ticker):
             model="gemini-1.5-flash",
             contents=f"Analyze the following news headlines for {ticker} and provide a brief summary(bullish, neutral or bearish) and why: {new_titles}"
         )
+
+        analysis_text = response.text;
+
+        set_cached_analysis(ticker, analysis_text)
 
         return jsonify({"ticker": ticker, "analysis": response.text}), 200
     
@@ -102,3 +117,9 @@ def get_stock_info(ticker):
     except Exception as e:
         return jsonify({"error": f"Could not fetch data for {ticker}"}), 400
     
+
+def get_cached_analysis(ticker):
+    return r.get(f"analysis:{ticker}")
+
+def set_cached_analysis(ticker, analysis_text):
+    r.setex(f"analysis:{ticker}", 3600, analysis_text) # cache for 1 hour (3600 sec)

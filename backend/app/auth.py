@@ -1,10 +1,14 @@
 from extensions import db
 from bcrypt import hashpw, checkpw, gensalt
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, JWTManager
+from flask_jwt_extended import get_jwt, jwt_required
+from datetime import timedelta
 from models import User
+import redis
 
 auth_bp = Blueprint('auth', __name__)
+jwt_redis_blocklist = redis.StrictRedis(host="localhost", port=6379, db=0, decode_responses=True)
 
 @auth_bp.route('/signup', methods=['POST'])
 def signup():
@@ -58,3 +62,13 @@ def login():
         }), 200
     
     return jsonify(message='Invalid credentials!'), 401
+
+@auth_bp.route('/logout', methods=['POST'])
+@jwt_required()
+def logout():
+    
+    jti = get_jwt()["jti"]
+
+    jwt_redis_blocklist.setex(jti, timedelta(hours=24), "true")
+
+    return jsonify({"msg": "Access token required"}), 200

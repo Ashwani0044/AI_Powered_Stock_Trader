@@ -23,9 +23,15 @@ const Sidebar = () => {
     { name: 'AI Assistant', icon: <MessageSquare size={20} />, path: '/ai-chat' },
   ];
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await api.post('/auth/logout'); // Tell backend to block the token
+    } catch (err) {
+      console.error("Logout failed on server, but clearing local session.");
+    } finally {
+      localStorage.removeItem('token'); // Clear frontend
+      navigate('/login');
+    }
   };
 
   return (
