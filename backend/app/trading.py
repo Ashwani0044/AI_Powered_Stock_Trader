@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from extensions import db
 from models import User, Portfolio, Transaction
 import yfinance as yf
+from app.utils.leaderboard import update_user_profit
 
 trading_bp = Blueprint('trading', __name__)
 
@@ -103,6 +104,9 @@ def sell_stock():
         return jsonify(message='Ticker and quantity are required'), 400
     
     ticker = data.get('ticker').upper()
+    quantity_to_sell = int(data.get('quantity'))
+
+
     try:
         quantity_to_sell = int(data.get('quantity'))
         if quantity_to_sell <= 0:
@@ -125,8 +129,15 @@ def sell_stock():
     except Exception:
         return jsonify(message="Error fetching current market price."), 500
     
+    realized_profit = (current_price - holding.avg_cost) * quantity_to_sell
+    
     payout = current_price * quantity_to_sell
     user = User.query.get(user_id)
+
+    try:
+        update_user_profit(user_id, user.username, realized_profit)
+    except Exception as e:
+        print(f"Redis Leaderboard Update Failed: {e}")
 
     user.balance += payout
     
@@ -151,6 +162,7 @@ def sell_stock():
         "message": f"Successfully sold {quantity_to_sell} shares of {ticker}",
         "price": round(current_price, 2),
         "payout": round(payout, 2),
+        "realized_profit": round(realized_profit, 2),
         "new_balance": round(user.balance, 2)
     }), 200
 

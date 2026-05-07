@@ -123,3 +123,11 @@ def get_cached_analysis(ticker):
 
 def set_cached_analysis(ticker, analysis_text):
     r.setex(f"analysis:{ticker}", 3600, analysis_text) # cache for 1 hour (3600 sec)
+
+from app.utils.leaderboard import get_top_traders
+    
+
+@market_bp.route('/leaderboard', methods=['GET'])
+def show_leaderboard():
+    top_10 = get_top_traders(10)
+    return jsonify(top_10), 200
