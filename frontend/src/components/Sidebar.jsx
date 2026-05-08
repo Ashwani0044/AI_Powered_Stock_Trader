@@ -23,6 +23,11 @@ const Sidebar = () => {
     { name: 'AI Assistant', icon: <MessageSquare size={20} />, path: '/ai-chat' },
   ];
 
+  const GainersList = ({ holdings }) => {
+  const topGainers = [...holdings]
+    .sort((a, b) => b.pl - a.pl) // Sort by Profit/Loss percentage
+    .slice(0, 5);
+
   const handleLogout = async () => {
     try {
       await api.post('/auth/logout'); // Tell backend to block the token
@@ -68,6 +73,15 @@ const Sidebar = () => {
             <p className="text-sm font-semibold text-slate-200 truncate">{username}</p>
           </div>
         </div>
+        <div className="space-y-2">
+        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Top Performers</p>
+        {topGainers.map(stock => (
+          <div key={stock.ticker} className="flex justify-between text-xs py-1 border-b border-slate-700/50">
+            <span className="font-bold">{stock.ticker}</span>
+            <span className="text-green-400">+{stock.pl}%</span>
+          </div>
+        ))}
+      </div>
         <button 
           onClick={handleLogout}
           className="w-full flex items-center space-x-3 p-3 text-red-400 hover:bg-red-900/20 rounded-lg transition"
@@ -79,5 +93,6 @@ const Sidebar = () => {
     </div>
   );
 };
+}
 
 export default Sidebar;

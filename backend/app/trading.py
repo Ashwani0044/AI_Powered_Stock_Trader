@@ -129,7 +129,7 @@ def sell_stock():
     except Exception:
         return jsonify(message="Error fetching current market price."), 500
     
-    realized_profit = (current_price - holding.avg_cost) * quantity_to_sell
+    realized_profit = (current_price - holding.avg_price) * quantity_to_sell
     
     payout = current_price * quantity_to_sell
     user = User.query.get(user_id)
