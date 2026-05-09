@@ -46,7 +46,7 @@ const TradeModal = ({ isOpen, onClose, ticker, type, onTradeSuccess, onSuccess, 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-slate-800 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="p-6 border-b border-slate-700 flex justify-between items-center bg-linear-to-r from-slate-800/50 to-slate-700/50">
+        <div className="p-6 border-b border-slate-700 flex justify-between items-center bg-gradient-to-r from-slate-800/50 to-slate-700/50">
           <h3 className="text-xl font-bold">
             {type === 'BUY' ? '🟢' : '🔴'} {type} <span className="text-blue-400">{ticker}</span>
           </h3>

@@ -43,11 +43,11 @@ const Signup = ({ setNotification }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-900 via-blue-900/20 to-slate-900 text-white p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900/20 to-slate-900 text-white p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold bg-linear-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-2">
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-2">
             FIN-INTEL
           </h1>
           <p className="text-slate-400">AI-Powered Stock Trading Simulator</p>
@@ -127,7 +127,7 @@ const Signup = ({ setNotification }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-6 py-3 bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-bold flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-bold flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <>

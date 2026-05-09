@@ -1,1 +1,21 @@
-# pip install flask flask-sqlalchemy flask-migrate flask-jwt-extended flask-bcrypt flask-cors yfinance python-dotenv google-generativeai
+# Core Web Framework
+Flask==3.1.0
+Flask-Cors==6.0.2
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.0.7
+gunicorn==23.0.0
+
+# Security & Authentication
+Flask-JWT-Extended==4.7.1
+Flask-Bcrypt==1.0.1
+
+# AI & Data
+google-genai
+yfinance==0.2.54
+
+# Fast Data & Performance
+redis==5.2.1
+
+# Utilities
+python-dotenv==1.0.1
+psycopg2-binary==2.9.10

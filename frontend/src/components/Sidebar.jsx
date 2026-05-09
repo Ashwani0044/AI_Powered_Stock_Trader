@@ -10,10 +10,15 @@ import {
   BarChart3
 } from 'lucide-react';
 
-const Sidebar = () => {
+const Sidebar = ({ holdings = [] }) => { // Added default empty array
   const navigate = useNavigate();
   const location = useLocation();
   const username = localStorage.getItem('username') || 'Trader';
+
+  // Correctly calculate top gainers from props
+  const topGainers = [...holdings]
+    .sort((a, b) => b.pl - a.pl)
+    .slice(0, 5);
 
   const menuItems = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
@@ -23,24 +28,14 @@ const Sidebar = () => {
     { name: 'AI Assistant', icon: <MessageSquare size={20} />, path: '/ai-chat' },
   ];
 
-  const GainersList = ({ holdings }) => {
-  const topGainers = [...holdings]
-    .sort((a, b) => b.pl - a.pl) // Sort by Profit/Loss percentage
-    .slice(0, 5);
-
-  const handleLogout = async () => {
-    try {
-      await api.post('/auth/logout'); // Tell backend to block the token
-    } catch (err) {
-      console.error("Logout failed on server, but clearing local session.");
-    } finally {
-      localStorage.removeItem('token'); // Clear frontend
-      navigate('/login');
-    }
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    navigate('/login');
   };
 
   return (
-    <div className="h-screen w-64 bg-linear-to-b from-slate-800 to-slate-900 border-r border-slate-700 flex flex-col fixed left-0 top-0 shadow-2xl">
+    <div className="h-screen w-64 bg-slate-800 border-r border-slate-700 flex flex-col fixed left-0 top-0 shadow-2xl z-50">
       <div className="p-6 border-b border-slate-700">
         <h1 className="text-2xl font-bold bg-linear-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent tracking-tighter">FIN-INTEL</h1>
         <p className="text-xs text-slate-500 font-mono mt-1">AI Stock Trading Hub</p>
@@ -53,7 +48,7 @@ const Sidebar = () => {
             onClick={() => navigate(item.path)}
             className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 ${
               location.pathname === item.path 
-                ? 'bg-linear-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-900/40' 
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' 
                 : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'
             }`}
           >
@@ -73,15 +68,19 @@ const Sidebar = () => {
             <p className="text-sm font-semibold text-slate-200 truncate">{username}</p>
           </div>
         </div>
-        <div className="space-y-2">
-        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Top Performers</p>
-        {topGainers.map(stock => (
-          <div key={stock.ticker} className="flex justify-between text-xs py-1 border-b border-slate-700/50">
-            <span className="font-bold">{stock.ticker}</span>
-            <span className="text-green-400">+{stock.pl}%</span>
+
+        {topGainers.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Top Performers</p>
+            {topGainers.map(stock => (
+              <div key={stock.ticker} className="flex justify-between text-xs py-1 border-b border-slate-700/50">
+                <span className="font-bold text-slate-300">{stock.ticker}</span>
+                <span className="text-green-400">+{stock.pl}%</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        )}
+
         <button 
           onClick={handleLogout}
           className="w-full flex items-center space-x-3 p-3 text-red-400 hover:bg-red-900/20 rounded-lg transition"
@@ -93,6 +92,5 @@ const Sidebar = () => {
     </div>
   );
 };
-}
 
 export default Sidebar;

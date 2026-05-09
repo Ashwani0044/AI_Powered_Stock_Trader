@@ -63,7 +63,7 @@ const AIChat = ({ setNotification }) => {
       <button
         onClick={getPortfolioHealth}
         disabled={loadingHealth}
-        className="w-full px-6 py-4 bg-linear-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-bold flex items-center justify-center gap-3 transition disabled:opacity-50"
+        className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-bold flex items-center justify-center gap-3 transition disabled:opacity-50"
       >
         <Brain size={20} />
         {loadingHealth ? 'Analyzing Portfolio...' : 'Get Portfolio Diagnosis'}

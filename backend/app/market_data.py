@@ -8,7 +8,16 @@ import json
 
 market_bp = Blueprint('market', __name__)
 load_dotenv()
-r = redis.Redis(host='localhost', post=6379, db=0, decode_responses=True)
+redis_host = os.environ.get('REDIS_HOST', 'redis')
+# Initialize Redis with error handling (optional)
+try:
+    r = redis.Redis(host=redis_host, port=6379, db=0, decode_responses=True)
+    r.ping()
+    redis_available = True
+except Exception as e:
+    print(f"Redis not available: {e}")
+    r = None
+    redis_available = False
 # genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 # model = genai.GenerativeModel('gemini-pro')
 
@@ -57,7 +66,6 @@ def analyze_stock(ticker):
     if cached_data:
         return jsonify({"ticker": ticker, "analysis": cached_data, "source": "cache"}), 200
 
-
     try:
         stock = yf.Ticker(ticker)
         news = stock.news[:5] # top 5 news at a time
@@ -65,23 +73,32 @@ def analyze_stock(ticker):
         if not news:
             return jsonify({"analysis": "No recent news found for this ticker."}), 200
         
-        # prompt for gemini
-        new_titles = [item['title'] for item in news]
+        # prompt for gemini - safely extract titles from news items
+        new_titles = []
+        for item in news:
+            # Try to get title, handle different structures
+            if isinstance(item, dict):
+                title = item.get('title') or item.get('headline') or str(item)
+                new_titles.append(title)
+            else:
+                new_titles.append(str(item))
+        
+        if not new_titles:
+            return jsonify({"analysis": "Could not extract news headlines."}), 200
 
         response = client.models.generate_content(
             model="gemini-1.5-flash",
             contents=f"Analyze the following news headlines for {ticker} and provide a brief summary(bullish, neutral or bearish) and why: {new_titles}"
         )
 
-        analysis_text = response.text;
+        analysis_text = response.text
 
         set_cached_analysis(ticker, analysis_text)
 
         return jsonify({"ticker": ticker, "analysis": response.text}), 200
     
-    except Exception.ResourceExhausted as e:
-        return jsonify({"error": "AI Rate Limit reached. Please try again in a minute."}), 429
     except Exception as e:
+        print(f"Stock analysis error: {e}")
         return jsonify({"error": "AI analysis failed"}), 500
     
 
@@ -118,11 +135,21 @@ def get_stock_info(ticker):
         return jsonify({"error": f"Could not fetch data for {ticker}"}), 400
     
 
+
 def get_cached_analysis(ticker):
-    return r.get(f"analysis:{ticker}")
+    if redis_available and r:
+        try:
+            return r.get(f"analysis:{ticker}")
+        except Exception:
+            return None
+    return None
 
 def set_cached_analysis(ticker, analysis_text):
-    r.setex(f"analysis:{ticker}", 3600, analysis_text) # cache for 1 hour (3600 sec)
+    if redis_available and r:
+        try:
+            r.setex(f"analysis:{ticker}", 3600, analysis_text) # cache for 1 hour (3600 sec)
+        except Exception:
+            pass  # Silently fail if cache write fails
 
 from app.utils.leaderboard import get_top_traders
     

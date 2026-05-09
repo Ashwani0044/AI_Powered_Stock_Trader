@@ -6,9 +6,20 @@ from flask_jwt_extended import get_jwt, jwt_required
 from datetime import timedelta
 from models import User
 import redis
+import os
 
 auth_bp = Blueprint('auth', __name__)
-jwt_redis_blocklist = redis.StrictRedis(host="localhost", port=6379, db=0, decode_responses=True)
+redis_host = os.environ.get('REDIS_HOST', 'redis')
+
+# Initialize Redis with error handling (optional)
+try:
+    jwt_redis_blocklist = redis.Redis(host=redis_host, port=6379, db=0, decode_responses=True)
+    jwt_redis_blocklist.ping()
+    redis_available = True
+except Exception as e:
+    print(f"Redis not available: {e}")
+    jwt_redis_blocklist = None
+    redis_available = False
 
 @auth_bp.route('/signup', methods=['POST'])
 def signup():
@@ -69,6 +80,10 @@ def logout():
     
     jti = get_jwt()["jti"]
 
-    jwt_redis_blocklist.setex(jti, timedelta(hours=24), "true")
-
-    return jsonify({"msg": "Access token required"}), 200
+    if redis_available and jwt_redis_blocklist:
+        try:
+            jwt_redis_blocklist.setex(jti, timedelta(hours=24), "true")
+        except Exception as e:
+            print(f"Failed to add token to blocklist: {e}")
+    
+    return jsonify({"msg": "Logged out successfully"}), 200

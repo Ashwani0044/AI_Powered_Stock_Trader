@@ -123,7 +123,7 @@ const Market = ({ setNotification }) => {
       ) : stockInfo ? (
         <>
           {/* Stock Header */}
-          <div className="bg-linear-to-r from-blue-900/20 to-slate-800 rounded-xl border border-slate-700 p-8 shadow-xl">
+          <div className="bg-gradient-to-r from-blue-900/20 to-slate-800 rounded-xl border border-slate-700 p-8 shadow-xl">
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-5xl font-bold text-white mb-2">{stockInfo.symbol}</h2>

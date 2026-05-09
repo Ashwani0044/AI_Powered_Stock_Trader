@@ -6,18 +6,20 @@ from dotenv import load_dotenv
 from flask_cors import CORS
 from datetime import timedelta
 
-app = Flask(__name__) 
-CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
+App = Flask(__name__) 
+CORS(App, resources={r"/*": {"origins": "http://localhost:5173"}})
 
-migrate = Migrate(app, db)
+migrate = Migrate(App, db)
 load_dotenv()
 
-app.config['JWT_SECRET_KEY']=os.getenv('JWT_SECRET_KEY')
-app.config['SQLALCHEMY_DATABASE_URI']="sqlite:///stock.db"
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=7) # Token lasts a week
+App.config['JWT_SECRET_KEY']=os.getenv('JWT_SECRET_KEY')
+App.config['SQLALCHEMY_DATABASE_URI']="sqlite:///stock.db"
+App.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=7) # Token lasts a week
+redis_host = os.environ.get('REDIS_HOST', 'redis') 
+App.config['REDIS_URL'] = f"redis://{redis_host}:6379/0"
 
-db.init_app(app)
-jwt.init_app(app)
+db.init_app(App)
+jwt.init_app(App)
 
 from models import User, Portfolio, Transaction
 from app.auth import auth_bp
@@ -26,14 +28,14 @@ from app.trading import trading_bp
 from app.ai_engine import ai_bp
 from app.watchlist import watchlist_bp
 
-app.register_blueprint(auth_bp, url_prefix='/auth')
-app.register_blueprint(market_bp, url_prefix='/market')
-app.register_blueprint(trading_bp, url_prefix='/trading')
-app.register_blueprint(ai_bp, url_prefix='/ai')
-app.register_blueprint(watchlist_bp, url_prefix='/watchlist')
+App.register_blueprint(auth_bp, url_prefix='/auth')
+App.register_blueprint(market_bp, url_prefix='/market')
+App.register_blueprint(trading_bp, url_prefix='/trading')
+App.register_blueprint(ai_bp, url_prefix='/ai')
+App.register_blueprint(watchlist_bp, url_prefix='/watchlist')
 
 
 if __name__ == '__main__':
-    # with app.app_context():
+    # with App.App_context():
     #     db.create_all()
-    app.run(host="0.0.0.0", port=5000)
+    App.run(host="0.0.0.0", port=5000)
