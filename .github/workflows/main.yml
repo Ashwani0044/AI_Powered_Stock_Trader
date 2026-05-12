@@ -28,7 +28,7 @@ jobs:
 
       # This starts your entire system (Postgres, Redis, Backend, Frontend)
       - name: Spin up Docker Compose
-        run: docker-compose up -d --build
+        run: docker compose up -d --build
 
       # Check if the Backend is actually running
       - name: Backend Health Check
