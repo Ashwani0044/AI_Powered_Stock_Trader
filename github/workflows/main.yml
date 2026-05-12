@@ -1,0 +1,36 @@
+name: Trading Verse CI/CD
+
+on:
+  push:
+    branches: [ main ] # Runs every time you push to the main branch
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # This starts your entire system (Postgres, Redis, Backend, Frontend)
+      - name: Spin up Docker Compose
+        run: docker-compose up -d --build
+
+      # Check if the Backend is actually running
+      - name: Backend Health Check
+        run: |
+          sleep 10
+          curl http://localhost:5000/health || exit 1
+
+      # Run your Python tests inside the container
+      - name: Run Backend Tests
+        run: docker-compose exec -T flask_backend pytest
+
+      # Shut down after tests pass
+      - name: Docker Down
+        run: docker-compose down

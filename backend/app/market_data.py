@@ -9,7 +9,7 @@ import json
 market_bp = Blueprint('market', __name__)
 load_dotenv()
 redis_host = os.environ.get('REDIS_HOST', 'redis')
-# Initialize Redis with error handling (optional)
+# Initialize Redis with error handling 
 try:
     r = redis.Redis(host=redis_host, port=6379, db=0, decode_responses=True)
     r.ping()
@@ -39,7 +39,7 @@ def get_stock_price(ticker):
 @market_bp.route('/history/<ticker>', methods=['GET'])
 def get_stock_history(ticker):
     '''to fetch history of the stock for the charts in frontend'''
-    period = request.args.get('period', '1mo') #default to 1 month
+    period = request.args.get('period', '1mo') # default to 1 month
     try:
         stock = yf.Ticker(ticker)
         hist = stock.history(period=period)

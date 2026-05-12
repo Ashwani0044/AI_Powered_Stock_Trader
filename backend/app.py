@@ -34,6 +34,10 @@ App.register_blueprint(trading_bp, url_prefix='/trading')
 App.register_blueprint(ai_bp, url_prefix='/ai')
 App.register_blueprint(watchlist_bp, url_prefix='/watchlist')
 
+@App.route('/health')
+def health():
+    return {"status":"healthy"}, 200
+
 
 if __name__ == '__main__':
     # with App.App_context():
