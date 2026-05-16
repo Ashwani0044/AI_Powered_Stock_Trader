@@ -44,7 +44,7 @@ jobs:
           exit 1
 
       - name: Run Backend Tests
-        run: docker compose exec -T flask_backend pytest
+        run: docker compose exec -T backend pytest
 
       - name: Docker Down
         run: docker compose down
