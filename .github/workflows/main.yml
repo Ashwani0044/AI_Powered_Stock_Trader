@@ -2,7 +2,7 @@ name: Trading Verse CI/CD
 
 on:
   push:
-    branches: [ main ] # Runs every time you push to the main branch
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
@@ -16,7 +16,7 @@ jobs:
 
       - name: Create temporary .env file
         run: |
-          echo "FLASK_APP=App.py" >> backend/.env
+          echo "FLASK_APP=app.py" >> backend/.env
           echo "FLASK_ENV=development" >> backend/.env
           echo "DATABASE_URL=postgresql://user:password@db:5432/trading_db" >> backend/.env
           echo "REDIS_URL=redis://redis:6379/0" >> backend/.env
@@ -26,20 +26,25 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # This starts your entire system (Postgres, Redis, Backend, Frontend)
       - name: Spin up Docker Compose
         run: docker compose up -d --build
 
-      # Check if the Backend is actually running
       - name: Backend Health Check
         run: |
-          sleep 10
-          curl http://localhost:5000/health || exit 1
+          for i in {1..10}; do
+            if curl -s http://localhost:5000/health; then
+              echo "Backend is UP!"
+              exit 0
+            fi
+            echo "Waiting for backend... (attempt $i)"
+            sleep 3
+          done
+          echo "Backend failed to start in time."
+          docker compose logs flask_backend
+          exit 1
 
-      # Run your Python tests inside the container
       - name: Run Backend Tests
         run: docker compose exec -T flask_backend pytest
 
-      # Shut down after tests pass
       - name: Docker Down
-        run: docker-compose down
+        run: docker compose down
