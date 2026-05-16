@@ -16,7 +16,7 @@ jobs:
 
       - name: Create temporary .env file
         run: |
-          echo "FLASK_APP=app.py" >> backend/.env
+          echo "FLASK_APP=run.py" >> backend/.env
           echo "FLASK_ENV=development" >> backend/.env
           echo "DATABASE_URL=postgresql://user:password@db:5432/trading_db" >> backend/.env
           echo "REDIS_URL=redis://redis:6379/0" >> backend/.env
