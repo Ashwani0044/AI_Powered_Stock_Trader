@@ -40,7 +40,7 @@ jobs:
             sleep 3
           done
           echo "Backend failed to start in time."
-          docker compose logs flask_backend
+          docker compose logs backend
           exit 1
 
       - name: Run Backend Tests
